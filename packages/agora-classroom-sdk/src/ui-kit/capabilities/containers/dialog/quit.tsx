@@ -3,8 +3,6 @@ import { useState } from 'react';
 import { useStore } from '@/infra/hooks/ui-store';
 import { Button, Modal, transI18n } from '~ui-kit';
 import { BaseDialogProps } from '.';
-import TranscriptLog from '../text-transcript/TranscriptLog';
-import transcriptionStore from '@/infra/stores/common/TranscriptStore';
 
 export const Quit: React.FC<
   BaseDialogProps & { onOk: (back: boolean) => void; showOption: boolean }
@@ -23,7 +21,6 @@ export const Quit: React.FC<
       onOk={() => {
         onOk(type === 'back');
         removeDialog(id);
-        console.log(transcriptionStore.transcriptions, transcriptionStore.userNames, 'user-details');
       }}
       onCancel={() => {
         removeDialog(id);
@@ -57,7 +54,6 @@ export const Quit: React.FC<
         transI18n('toast.quit_room')
       )}
     </Modal>
-    <TranscriptLog transcripts={transcriptionStore.transcriptions} userNames={transcriptionStore.userNames} />
     </>
   );
 });

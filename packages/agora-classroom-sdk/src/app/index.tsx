@@ -21,6 +21,7 @@ const routes: BizPageRouter[] = [
   BizPageRouter.TestH5HomePage,
   BizPageRouter.VocationalHomePage,
   BizPageRouter.VocationalHomeH5Page,
+  BizPageRouter.TranscriptLogPage,
 ];
 
 const RouteContainer = () => {

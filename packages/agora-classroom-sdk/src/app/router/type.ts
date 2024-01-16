@@ -17,4 +17,5 @@ export enum BizPageRouter {
   Window = 'window',
   VocationalHomePage = 'vocational_home',
   VocationalHomeH5Page = 'vocational_h5_home',
+  TranscriptLogPage = 'transcript_log',
 }

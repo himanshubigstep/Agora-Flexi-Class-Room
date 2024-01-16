@@ -8,6 +8,7 @@ import { LaunchPage } from '../pages/launch';
 import { LaunchWindow } from '../pages/launch-window';
 import { RecordationSearchPage } from '../pages/recordation-search';
 import { BizPageRouter } from './type';
+import TranscriptLog from '../pages/transcript-Log';
 
 export type AppRouteComponent = {
   path: string;
@@ -67,4 +68,8 @@ export const routesMap: Record<string, AppRouteComponent> = {
     path: '/window',
     component: () => PageSFC(LaunchWindow),
   },
+  [BizPageRouter.TranscriptLogPage]: {
+    path: '/transcript_log',
+    component: () => PageSFC(TranscriptLog)
+  }
 };

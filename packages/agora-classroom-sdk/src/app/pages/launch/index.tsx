@@ -7,6 +7,7 @@ import { observer } from 'mobx-react';
 import { useCallback, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
 import courseWareList from './courseware-list';
+import transcriptionStore from '@/infra/stores/common/TranscriptStore';
 
 
 
@@ -59,7 +60,14 @@ export const LaunchPage = observer(() => {
             return;
           }
           if (evt === AgoraEduClassroomEvent.Destroyed) {
-            history.push(`/?reason=${type}`);
+            // history.push(`/?reason=${type}`);
+            // history.push('/transcript_log', '_blank')
+            if (isEmpty(transcriptionStore.transcriptions) && isEmpty(transcriptionStore.userNames)) {
+              history.push(`/?reason=${type}`);
+            } else {
+              // If either transcriptions or userNames is not empty, open the transcript log
+              history.push('/transcript_log', '_blank');
+            }
           }
         },
       });
