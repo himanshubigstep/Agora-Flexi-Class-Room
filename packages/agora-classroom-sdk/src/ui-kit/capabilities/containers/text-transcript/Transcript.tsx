@@ -45,10 +45,10 @@ const Transcript = observer(({ stream }: { stream: EduStreamUI }) => {
           }
         }
     >
-      {/* <p className="mb-2">
+      <p className="mb-2">
         <span className="font-bold mr-2">{stream.stream.fromUser.userName}:</span>
         <span className="font-bold">{currentTranscription}</span>
-      </p> */}
+      </p>
     </div>
   );
 });
