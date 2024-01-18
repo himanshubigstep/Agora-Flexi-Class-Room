@@ -2,37 +2,38 @@ import React, { useState, useEffect } from 'react';
 import { observer } from 'mobx-react';
 import { EduStreamUI } from '@/infra/stores/common/stream/struct';
 import transcriptionStore from '@/infra/stores/common/TranscriptStore';
+import annyang from 'annyang';
 
 const Transcript = observer(({ stream }: { stream: EduStreamUI }) => {
   const [currentTranscription, setCurrentTranscription] = useState('');
-  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 
   useEffect(() => {
-    if (!recognition) {
-      console.error('Speech recognition not supported on this browser');
-      return;
-    }
+    const startSpeechRecognition = () => {
+      annyang.addCallback('result', (phrases: string[]) => {
+        const newTranscription = phrases[0];
+        const userName = stream.stream.fromUser.userName;
+        transcriptionStore.addTranscription(newTranscription, userName);
+        setCurrentTranscription(newTranscription);
+      });
 
-    recognition.onresult = (event) => {
-      const last = event.results.length - 1;
-      const newTranscription = event.results[last][0].transcript;
-      const userName = stream.stream.fromUser.userName;
-      transcriptionStore.addTranscription(newTranscription, userName);
-      setCurrentTranscription(newTranscription);
+      annyang.addCallback('error', (error: any) => {
+        console.error('Speech recognition error:', error);
+      });
+
+      annyang.start();
     };
 
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-    };
-
-    recognition.onend = () => {
-      recognition.start();
-    };
-
-    recognition.start();
+    startSpeechRecognition();
 
     return () => {
-      recognition.stop();
+      annyang.abort();
+    };
+  }, [stream.stream.fromUser.userName]);
+
+  // Cleanup when the component unmounts or when a user leaves the room
+  useEffect(() => {
+    return () => {
+      annyang.abort();
     };
   }, []);
 

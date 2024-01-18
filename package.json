@@ -121,6 +121,8 @@
     "**/*": "prettier --write --ignore-unknown"
   },
   "dependencies": {
+    "@types/annyang": "^2.6.5",
+    "annyang": "^2.6.1",
     "jspdf": "^2.5.1"
   }
 }
