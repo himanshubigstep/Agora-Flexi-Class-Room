@@ -5,15 +5,21 @@ import transcriptionStore from '@/infra/stores/common/TranscriptStore';
 import annyang from 'annyang';
 
 const Transcript = observer(({ stream }: { stream: EduStreamUI }) => {
-  const [currentTranscription, setCurrentTranscription] = useState('');
+  const [transcriptions, setTranscriptions] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     const startSpeechRecognition = () => {
       annyang.addCallback('result', (phrases: string[]) => {
         const newTranscription = phrases[0];
         const userName = stream.stream.fromUser.userName;
+
+        // Update the transcription only for the current user
+        setTranscriptions(prevTranscriptions => ({
+          ...prevTranscriptions,
+          [userName]: newTranscription,
+        }));
+
         transcriptionStore.addTranscription(newTranscription, userName);
-        setCurrentTranscription(newTranscription);
       });
 
       annyang.addCallback('error', (error: any) => {
@@ -47,8 +53,11 @@ const Transcript = observer(({ stream }: { stream: EduStreamUI }) => {
         }
     >
       <p className="mb-2">
-        <span className="font-bold mr-2">{stream.stream.fromUser.userName}:</span>
-        <span className="font-bold">{currentTranscription}</span>
+        {Object.keys(transcriptions).map(userName => (
+          <span key={userName} className="font-bold mr-2">
+            {userName}: {transcriptions[userName]}
+          </span>
+        ))}
       </p>
     </div>
   );
