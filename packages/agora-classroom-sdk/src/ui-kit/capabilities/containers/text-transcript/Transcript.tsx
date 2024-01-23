@@ -13,6 +13,8 @@ const Transcript = observer(({ stream }: { stream: EduStreamUI }) => {
         const newTranscription = phrases[0];
         const userName = stream.stream.fromUser.userName;
 
+        console.log('Received transcription:', newTranscription, userName);
+
         // Update the transcription only for the current user
         setTranscriptions(prevTranscriptions => ({
           ...prevTranscriptions,
