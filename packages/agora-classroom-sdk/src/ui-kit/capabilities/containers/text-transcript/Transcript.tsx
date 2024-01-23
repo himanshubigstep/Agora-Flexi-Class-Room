@@ -3,8 +3,14 @@ import { observer } from 'mobx-react';
 import { EduStreamUI } from '@/infra/stores/common/stream/struct';
 import transcriptionStore from '@/infra/stores/common/TranscriptStore';
 import annyang from 'annyang';
+import { useStore } from '@/infra/hooks/ui-store';
 
 const Transcript = observer(({ stream }: { stream: EduStreamUI }) => {
+  const {
+    pretestUIStore: { currentPlaybackDeviceId },
+  } = useStore();
+
+  console.log(currentPlaybackDeviceId, 'testing-current-device')
   const [transcriptions, setTranscriptions] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
@@ -54,6 +60,7 @@ const Transcript = observer(({ stream }: { stream: EduStreamUI }) => {
           }
         }
     >
+      {currentPlaybackDeviceId && stream.stream.fromUser.userName && (
       <p className="mb-2">
         {Object.keys(transcriptions).map(userName => (
           <span key={userName} className="font-bold mr-2">
@@ -61,6 +68,7 @@ const Transcript = observer(({ stream }: { stream: EduStreamUI }) => {
           </span>
         ))}
       </p>
+    )}
     </div>
   );
 });
