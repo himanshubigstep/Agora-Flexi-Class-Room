@@ -14,52 +14,44 @@ const Transcript = observer(({ stream }: { stream: EduStreamUI }) => {
 
   useEffect(() => {
     let recognition;
-
-    const startSpeechRecognition = async () => {
+  
+    const startSpeechRecognition = () => {
       if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const mediaDevices = navigator.mediaDevices;
-
-        try {
-          const audioStream = await mediaDevices.getUserMedia({ audio: true });
-          
-          recognition = new SpeechRecognition();
-          recognition.continuous = true;
-          recognition.lang = 'en-US';
-          recognition.media = audioStream;
-
-          recognition.onresult = (event) => {
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-              const newTranscription = event.results[i][0].transcript;
-              const userName = stream.stream.fromUser.userName;
-
-              console.log('Received transcription:', newTranscription, userName);
-
-              // Update the transcription only for the current user
-              setTranscriptions((prevTranscriptions) => ({
-                ...prevTranscriptions,
-                [userName]: newTranscription,
-              }));
-
-              transcriptionStore.addTranscription(newTranscription, userName);
-            }
-          };
-
-          recognition.onerror = (error) => {
-            console.error('Speech recognition error:', error);
-          };
-
-          recognition.start();
-        } catch (error) {
-          console.error('Error accessing microphone:', error);
-        }
+  
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.lang = 'en-US';
+  
+        recognition.onresult = (event) => {
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const newTranscription = event.results[i][0].transcript;
+            const userName = stream.stream.fromUser.userName;
+  
+            console.log('Received transcription:', newTranscription, userName);
+  
+            // Update the transcription only for the current user
+            setTranscriptions((prevTranscriptions) => ({
+              ...prevTranscriptions,
+              [userName]: newTranscription,
+            }));
+  
+            transcriptionStore.addTranscription(newTranscription, userName);
+          }
+        };
+  
+        recognition.onerror = (error) => {
+          console.error('Speech recognition error:', error);
+        };
+  
+        recognition.start();
       } else {
         console.error('Speech recognition not supported in this browser');
       }
     };
-
+  
     startSpeechRecognition();
-
+  
     return () => {
       if (recognition) {
         recognition.stop();
@@ -88,6 +80,7 @@ const Transcript = observer(({ stream }: { stream: EduStreamUI }) => {
             : '0',
       }}
     >
+      {currentPlaybackDeviceId && stream.stream.fromUser.userName && (
         <p className="mb-2">
           {Object.keys(transcriptions).map((userName) => (
             <span key={userName} className="font-bold mr-2">
@@ -95,6 +88,7 @@ const Transcript = observer(({ stream }: { stream: EduStreamUI }) => {
             </span>
           ))}
         </p>
+      )}
     </div>
   );
 });
