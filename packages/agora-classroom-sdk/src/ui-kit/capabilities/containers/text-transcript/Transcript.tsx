@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { observer } from 'mobx-react';
 import { EduStreamUI } from '@/infra/stores/common/stream/struct';
 import transcriptionStore from '@/infra/stores/common/TranscriptStore';
+import annyang from 'annyang';
 import { useStore } from '@/infra/hooks/ui-store';
 
 const Transcript = observer(({ stream }: { stream: EduStreamUI }) => {
@@ -13,58 +14,40 @@ const Transcript = observer(({ stream }: { stream: EduStreamUI }) => {
   const [transcriptions, setTranscriptions] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
-    let recognition;
-  
     const startSpeechRecognition = () => {
-      if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  
-        recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.lang = 'en-US';
-  
-        recognition.onresult = (event) => {
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const newTranscription = event.results[i][0].transcript;
-            const userName = stream.stream.fromUser.userName;
-  
-            console.log('Received transcription:', newTranscription, userName);
-  
-            // Update the transcription only for the current user
-            setTranscriptions((prevTranscriptions) => ({
-              ...prevTranscriptions,
-              [userName]: newTranscription,
-            }));
-  
-            transcriptionStore.addTranscription(newTranscription, userName);
-          }
-        };
-  
-        recognition.onerror = (error) => {
-          console.error('Speech recognition error:', error);
-        };
-  
-        recognition.start();
-      } else {
-        console.error('Speech recognition not supported in this browser');
-      }
+      annyang.addCallback('result', (phrases: string[]) => {
+        const newTranscription = phrases[0];
+        const userName = stream.stream.fromUser.userName;
+
+        console.log('Received transcription:', newTranscription, userName);
+
+        // Update the transcription only for the current user
+        setTranscriptions((prevTranscriptions) => ({
+          ...prevTranscriptions,
+          [userName]: newTranscription,
+        }));
+
+        transcriptionStore.addTranscription(newTranscription, userName);
+      });
+
+      annyang.addCallback('error', (error: any) => {
+        console.error('Speech recognition error:', error);
+      });
+
+      annyang.start();
     };
-  
+
     startSpeechRecognition();
-  
+
     return () => {
-      if (recognition) {
-        recognition.stop();
-      }
+      annyang.abort();
     };
   }, []);
 
   // Cleanup when the component unmounts or when a user leaves the room
   useEffect(() => {
     return () => {
-      if (recognition) {
-        recognition.stop();
-      }
+      annyang.abort();
     };
   }, []);
 
@@ -80,14 +63,11 @@ const Transcript = observer(({ stream }: { stream: EduStreamUI }) => {
             : '0',
       }}
     >
-      {currentPlaybackDeviceId && stream.stream.fromUser.userName && (
-        <p className="mb-2">
-          {Object.keys(transcriptions).map((userName) => (
-            <span key={userName} className="font-bold mr-2">
-              {userName}: {transcriptions[userName]}
-            </span>
-          ))}
-        </p>
+      {transcriptions[stream.stream.fromUser.userName] && (
+        <div className="mb-2">
+          <span className="font-bold">{stream.stream.fromUser.userName}:</span>
+          <span className="ml-2">{transcriptions[stream.stream.fromUser.userName]}</span>
+        </div>
       )}
     </div>
   );
