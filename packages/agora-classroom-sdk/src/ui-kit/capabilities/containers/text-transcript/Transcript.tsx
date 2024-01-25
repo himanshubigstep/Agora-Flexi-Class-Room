@@ -14,41 +14,50 @@ const Transcript: React.FC<TranscriptProps> = observer(({ stream }) => {
   const recognition =
     window.SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-  let recognitionInstance;
-
-  if (recognition) {
-    recognitionInstance = new recognition();
-    recognitionInstance.lang = '';
-    recognitionInstance.interimResults = false;
-    recognitionInstance.maxAlternatives = 1;
-
-    recognitionInstance.onresult = (event: SpeechRecognitionEvent) => {
-      const newTranscription = event.results[0][0].transcript;
-      setTranscription(newTranscription);
-      transcriptionStore.addTranscription(newTranscription, username);
-    };
-
-    recognitionInstance.onend = () => {
-      // Restart recognition after it ends
-      recognitionInstance.start();
-    };
-  } else {
-    console.error('SpeechRecognition API not supported in this browser');
-  }
+  // Use a dictionary to store recognition instances for each user
+  const recognitionInstances: { [key: string]: SpeechRecognition } = {};
 
   useEffect(() => {
-    // Start speech recognition
-    if (recognitionInstance) {
-      recognitionInstance.start();
+    const initRecognition = () => {
+      if (recognition) {
+        const recognitionInstance = new recognition();
+        recognitionInstance.lang = '';
+        recognitionInstance.interimResults = false;
+        recognitionInstance.maxAlternatives = 1;
+
+        recognitionInstance.onresult = (event: SpeechRecognitionEvent) => {
+          const newTranscription = event.results[0][0].transcript;
+          setTranscription(newTranscription);
+          transcriptionStore.addTranscription(newTranscription, username);
+        };
+
+        recognitionInstance.onend = () => {
+          // Restart recognition after it ends
+          recognitionInstance.start();
+        };
+
+        // Store the recognition instance for the current user
+        recognitionInstances[username] = recognitionInstance;
+      } else {
+        console.error('SpeechRecognition API not supported in this browser');
+      }
+    };
+
+    // Initialize recognition for the current user
+    initRecognition();
+
+    // Start speech recognition for the current user
+    if (recognitionInstances[username]) {
+      recognitionInstances[username].start();
     }
 
     // Cleanup: Stop recognition when the component unmounts
     return () => {
-      if (recognitionInstance) {
-        recognitionInstance.stop();
+      if (recognitionInstances[username]) {
+        recognitionInstances[username].stop();
       }
     };
-  }, []);
+  }, [username]);
 
   useEffect(() => {
     // Update username when stream prop changes
