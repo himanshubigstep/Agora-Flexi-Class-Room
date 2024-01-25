@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { observer } from 'mobx-react';
 import { EduStreamUI } from '@/infra/stores/common/stream/struct';
 import transcriptionStore from '@/infra/stores/common/TranscriptStore';
+import annyang from 'annyang';
 
 interface TranscriptProps {
   stream: EduStreamUI;
@@ -11,44 +12,33 @@ const Transcript: React.FC<TranscriptProps> = observer(({ stream }) => {
   const [transcription, setTranscription] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(stream.stream.fromUser.userName);
 
-  const recognition =
-    window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-  // Check if SpeechRecognition is supported
-  if (!recognition) {
-    console.error('SpeechRecognition API not supported in this browser');
-    return null; // or display a message indicating the lack of support
-  }
-
   useEffect(() => {
-    const recognitionInstance = new recognition();
-    recognitionInstance.lang = '';
-    recognitionInstance.interimResults = false;
-    recognitionInstance.maxAlternatives = 1;
+    // Initialize annyang
+    if (annyang) {
+      annyang.addCallback('result', (phrases: string[]) => {
+        const newTranscription = phrases[0];
+        const currentUser = stream.stream.fromUser.userName;
+        setTranscription(newTranscription);
+        transcriptionStore.addTranscription(newTranscription, currentUser);
+      });
 
-    recognitionInstance.onresult = (event: SpeechRecognitionEvent) => {
-      const newTranscription = event.results[0][0].transcript;
-      setTranscription(newTranscription);
-      transcriptionStore.addTranscription(newTranscription, username);
-    };
+      // Start listening
+      annyang.start();
+    } else {
+      console.error('Annyang not available in this browser');
+    }
 
-    recognitionInstance.onend = () => {
-      // Restart recognition after it ends
-      recognitionInstance.start();
-    };
-
-    // Start speech recognition for the current user
-    recognitionInstance.start();
-
-    // Cleanup: Stop recognition when the component unmounts
+    // Cleanup: Stop listening when the component unmounts
     return () => {
-      recognitionInstance.stop();
+      if (annyang) {
+        annyang.abort();
+      }
     };
-  }, [username, recognition]);
+  }, [stream.stream.fromUser.userName]);
 
   useEffect(() => {
     setUsername(stream.stream.fromUser.userName);
-  }, [stream.stream.fromUser.userName, recognition]);
+  }, [stream.stream.fromUser.userName]);
 
   return (
     <div
