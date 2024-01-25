@@ -9,11 +9,12 @@ interface TranscriptProps {
 
 const Transcript: React.FC<TranscriptProps> = observer(({ stream }) => {
   const [transcriptions, setTranscriptions] = useState<{ [username: string]: string }>({});
+  const [recognitionInstances, setRecognitionInstances] = useState<{ [username: string]: SpeechRecognition }>({});
 
   useEffect(() => {
-    let recognition;
+    const initRecognition = (user) => {
+      let recognition;
 
-    const initRecognition = () => {
       if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
         recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 
@@ -25,11 +26,11 @@ const Transcript: React.FC<TranscriptProps> = observer(({ stream }) => {
 
           setTranscriptions((prevTranscriptions) => ({
             ...prevTranscriptions,
-            [stream.stream.fromUser.userName]: newTranscription.trim(),
+            [user.userName]: newTranscription.trim(),
           }));
 
           // You may choose to keep this line or remove it based on your requirements
-          transcriptionStore.addTranscription(newTranscription.trim(), stream.stream.fromUser.userName);
+          transcriptionStore.addTranscription(newTranscription.trim(), user.userName);
         };
 
         recognition.onerror = (error) => {
@@ -42,19 +43,21 @@ const Transcript: React.FC<TranscriptProps> = observer(({ stream }) => {
         };
 
         recognition.start();
+        setRecognitionInstances((prevInstances) => ({ ...prevInstances, [user.userName]: recognition }));
       } else {
         console.error('Speech recognition not supported in this browser');
       }
     };
 
-    initRecognition();
+    initRecognition(stream.stream.fromUser);
 
     return () => {
+      const recognition = recognitionInstances[stream.stream.fromUser.userName];
       if (recognition) {
         recognition.abort();
       }
     };
-  }, [stream.stream.fromUser.userName]);
+  }, [stream.stream.fromUser]);
 
   return (
     <div
