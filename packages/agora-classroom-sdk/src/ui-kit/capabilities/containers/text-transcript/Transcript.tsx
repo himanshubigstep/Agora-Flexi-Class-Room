@@ -2,42 +2,58 @@ import React, { useState, useEffect } from 'react';
 import { observer } from 'mobx-react';
 import { EduStreamUI } from '@/infra/stores/common/stream/struct';
 import transcriptionStore from '@/infra/stores/common/TranscriptStore';
-import annyang from 'annyang';
 
 interface TranscriptProps {
   stream: EduStreamUI;
 }
 
 const Transcript: React.FC<TranscriptProps> = observer(({ stream }) => {
-  const [transcription, setTranscription] = useState<string | null>(null);
-  const [username, setUsername] = useState<string | null>(stream.stream.fromUser.userName);
+  const [transcriptions, setTranscriptions] = useState<{ [username: string]: string }>({});
 
   useEffect(() => {
-    // Initialize annyang
-    if (annyang) {
-      annyang.addCallback('result', (phrases: string[]) => {
-        const newTranscription = phrases[0];
-        const currentUser = stream.stream.fromUser.userName;
-        setTranscription(newTranscription);
-        transcriptionStore.addTranscription(newTranscription, currentUser);
-      });
+    let recognition;
 
-      // Start listening
-      annyang.start();
-    } else {
-      console.error('Annyang not available in this browser');
-    }
+    const initRecognition = () => {
+      if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+        recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 
-    // Cleanup: Stop listening when the component unmounts
-    return () => {
-      if (annyang) {
-        annyang.abort();
+        recognition.onresult = (event) => {
+          let newTranscription = '';
+          for (let i = 0; i < event.results.length; i++) {
+            newTranscription += event.results[i][0].transcript + ' ';
+          }
+
+          setTranscriptions((prevTranscriptions) => ({
+            ...prevTranscriptions,
+            [stream.stream.fromUser.userName]: newTranscription.trim(),
+          }));
+
+          // You may choose to keep this line or remove it based on your requirements
+          transcriptionStore.addTranscription(newTranscription.trim(), stream.stream.fromUser.userName);
+        };
+
+        recognition.onerror = (error) => {
+          console.error('SpeechRecognition error:', error);
+        };
+
+        recognition.onend = () => {
+          // Restart recognition after it ends
+          recognition.start();
+        };
+
+        recognition.start();
+      } else {
+        console.error('Speech recognition not supported in this browser');
       }
     };
-  }, [stream.stream.fromUser.userName]);
 
-  useEffect(() => {
-    setUsername(stream.stream.fromUser.userName);
+    initRecognition();
+
+    return () => {
+      if (recognition) {
+        recognition.abort();
+      }
+    };
   }, [stream.stream.fromUser.userName]);
 
   return (
@@ -52,10 +68,10 @@ const Transcript: React.FC<TranscriptProps> = observer(({ stream }) => {
             : '0',
       }}
     >
-      {transcription && (
+      {transcriptions[stream.stream.fromUser.userName] && (
         <div className="mb-2">
-          <span className="font-bold">{username}:</span>
-          <span className="ml-2">{transcription}</span>
+          <span className="font-bold">{stream.stream.fromUser.userName}:</span>
+          <span className="ml-2">{transcriptions[stream.stream.fromUser.userName]}</span>
         </div>
       )}
     </div>
