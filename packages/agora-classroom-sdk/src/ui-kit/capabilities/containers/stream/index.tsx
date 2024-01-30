@@ -39,16 +39,13 @@ export const TranscriptStream = observer(({ stream }: { stream: EduStreamUI }) =
         annyang.addCallback('result', (phrases: string[]) => {
           const newTranscription = phrases.join(' ');
 
-          // Check if the stream is local before updating the transcriptions
-          if (stream.stream.isLocal) {
-            setTranscriptions((prevTranscriptions) => ({
-              ...prevTranscriptions,
-              [stream.stream.fromUser.userName]: newTranscription.trim(),
-            }));
-  
-            // You may choose to keep this line or remove it based on your requirements
-            transcriptionStore.addTranscription(newTranscription.trim(), stream.stream.fromUser.userName);
-          }
+          setTranscriptions((prevTranscriptions) => ({
+            ...prevTranscriptions,
+            [stream.stream.fromUser.userName]: newTranscription.trim(),
+          }));
+
+          // You may choose to keep this line or remove it based on your requirements
+          transcriptionStore.addTranscription(newTranscription.trim(), stream.stream.fromUser.userName);
         });
 
         annyang.addCallback('error', (error: any) => {
@@ -66,7 +63,7 @@ export const TranscriptStream = observer(({ stream }: { stream: EduStreamUI }) =
         annyang.abort();
       }
     };
-  }, [stream.stream.fromUser.userName, stream.stream.isLocal]);
+  }, [stream.stream.fromUser.userName]);
 
   return (
     <div
@@ -251,6 +248,7 @@ export const StreamPlayerOverlay = observer(({ stream }: { stream: EduStreamUI }
       </div>
       <StreamPlaceholderWaveArmPlaceholder stream={stream} />
     </div>
+    <TranscriptStream stream={stream} />
     </>
   );
 });
@@ -296,7 +294,6 @@ export const StreamPlayer: FC<{
           {shouldRenderVideo && !toolbarDisabled && (
             <StreamPlayerToolbar stream={stream} visible={toolbarVisible} />
           )}
-          <TranscriptStream stream={stream} />
         </React.Fragment>
       )}
       <DragableContainer stream={stream} />
