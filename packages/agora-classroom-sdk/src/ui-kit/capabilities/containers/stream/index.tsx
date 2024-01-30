@@ -23,7 +23,72 @@ import { DragableContainer, DragableStream } from './draggable-stream';
 import './index.css';
 import { StreamPlayerToolbar } from './stream-tool';
 import { TrackPlayer } from './track-player';
-import Transcript from '../text-transcript/Transcript';
+import annyang from 'annyang'
+import transcriptionStore from '@/infra/stores/common/TranscriptStore';
+
+export const TranscriptStream = observer(({ stream }: { stream: EduStreamUI }) => {
+  const [transcriptions, setTranscriptions] = useState<{ [username: string]: string }>({});
+
+  useEffect(() => {
+    let recognition;
+
+    const initRecognition = () => {
+      if (annyang) {
+        annyang.start({ autoRestart: true });
+
+        annyang.addCallback('result', (phrases: string[]) => {
+          const newTranscription = phrases.join(' ');
+
+          // Check if the stream is local before updating the transcriptions
+          if (stream.stream.isLocal) {
+            setTranscriptions((prevTranscriptions) => ({
+              ...prevTranscriptions,
+              [stream.stream.fromUser.userName]: newTranscription.trim(),
+            }));
+  
+            // You may choose to keep this line or remove it based on your requirements
+            transcriptionStore.addTranscription(newTranscription.trim(), stream.stream.fromUser.userName);
+          }
+        });
+
+        annyang.addCallback('error', (error: any) => {
+          console.error('Annyang error:', error);
+        });
+      } else {
+        console.error('Annyang not supported in this environment');
+      }
+    };
+
+    initRecognition();
+
+    return () => {
+      if (annyang) {
+        annyang.abort();
+      }
+    };
+  }, [stream.stream.fromUser.userName, stream.stream.isLocal]);
+
+  return (
+    <div
+      className="flex justify-center items-center w-screen fixed left-0 bottom-0"
+      style={{
+        marginBottom:
+          stream.stream.fromUser.role === 'host'
+            ? '40px'
+            : stream.stream.fromUser.role === 'broadcaster'
+              ? '15px'
+              : '0',
+      }}
+    >
+      {transcriptions[stream.stream.fromUser.userName] && (
+        <div className="mb-2">
+          <span className="font-bold">{stream.stream.fromUser.userName}:</span>
+          <span className="ml-2">{transcriptions[stream.stream.fromUser.userName]}</span>
+        </div>
+      )}
+    </div>
+  );
+});
 
 export const AwardAnimations = observer(({ stream }: { stream: EduStreamUI }) => {
   const {
@@ -186,7 +251,6 @@ export const StreamPlayerOverlay = observer(({ stream }: { stream: EduStreamUI }
       </div>
       <StreamPlaceholderWaveArmPlaceholder stream={stream} />
     </div>
-    <Transcript stream={stream} />
     </>
   );
 });
@@ -232,6 +296,7 @@ export const StreamPlayer: FC<{
           {shouldRenderVideo && !toolbarDisabled && (
             <StreamPlayerToolbar stream={stream} visible={toolbarVisible} />
           )}
+          <TranscriptStream stream={stream} />
         </React.Fragment>
       )}
       <DragableContainer stream={stream} />
