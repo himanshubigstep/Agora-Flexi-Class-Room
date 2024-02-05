@@ -23,8 +23,10 @@ import { DragableContainer, DragableStream } from './draggable-stream';
 import './index.css';
 import { StreamPlayerToolbar } from './stream-tool';
 import { TrackPlayer } from './track-player';
-import annyang from 'annyang'
+// import { TranscriptStream } from '../speech-transcript/SpeechTranscript';
 import transcriptionStore from '@/infra/stores/common/TranscriptStore';
+import annyang from 'annyang'
+
 
 export const TranscriptStream = observer(({ stream }: { stream: EduStreamUI }) => {
   const [transcriptions, setTranscriptions] = useState<{ [username: string]: string }>({});
@@ -222,7 +224,6 @@ export const StreamPlayerOverlay = observer(({ stream }: { stream: EduStreamUI }
   const grantVisible = layerItems && layerItems.includes('grant');
 
   return (
-    <>
     <div className="video-player-overlay z-10 pointer-events-none">
       <AwardAnimations stream={stream} />
       <div className="top-right-info">
@@ -248,8 +249,6 @@ export const StreamPlayerOverlay = observer(({ stream }: { stream: EduStreamUI }
       </div>
       <StreamPlaceholderWaveArmPlaceholder stream={stream} />
     </div>
-    <TranscriptStream stream={stream} />
-    </>
   );
 });
 
@@ -293,6 +292,11 @@ export const StreamPlayer: FC<{
           {shouldRenderVideo && <StreamPlayerOverlay stream={stream} />}
           {shouldRenderVideo && !toolbarDisabled && (
             <StreamPlayerToolbar stream={stream} visible={toolbarVisible} />
+          )}
+
+          {/* Call TranscriptStream only for 'host' role */}
+          {shouldRenderVideo && stream.stream.fromUser.role === 'host' && (
+            <TranscriptStream stream={stream} />
           )}
         </React.Fragment>
       )}
