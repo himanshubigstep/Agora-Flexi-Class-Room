@@ -295,7 +295,7 @@ export const StreamPlayer: FC<{
           )}
 
           {/* Call TranscriptStream only for 'host' role */}
-          {shouldRenderVideo && stream.stream.fromUser.role === 'host' && (
+          {shouldRenderVideo && stream.stream.isLocal && (
             <TranscriptStream stream={stream} />
           )}
         </React.Fragment>
